@@ -2,6 +2,10 @@
 Daniel Hyun <https://github.com/danhyun[icon:github[] @danhyun] https://twitter.com/LSpacewalker[icon:twitter[] @LSpacewalker]>
 2017 June 1
 
+== Details
+
+Code: https://github.com/danhyun/mastering-async-ratpack/
+
 Notes: https://danhyun.github.io/mastering-async-ratpack/
 
 PDF: https://danhyun.github.io/mastering-async-ratpack/notes.pdf
