@@ -1,0 +1,522 @@
+= Mastering Async with Ratpack
+Daniel Hyun <https://github.com/danhyun[icon:github[] @danhyun] https://twitter.com/LSpacewalker[icon:twitter[] @LSpacewalker]>
+2017 June 1
+
+== Need for Async
+
+We want to do more with less.
+
+Resources are expensive: You pay for memory/compute/network usage
+
+----
+cost    | $$$                | $$      | $
+--------|-------------------------------------------
+method  | Multiple Processes | threads | event loop
+example | apache             | servlet | netty
+----------------------------------------------------
+----
+
+http://www.kegel.com/c10k.html
+
+== Scalability
+
+image::dhh-1.png[]
+
+image::dhh-2.png[]
+
+Source: https://twitter.com/dhh/status/649260226521210880
+
+2000 peak rps for 30 servers sounds expensive...
+
+Meanwhile at Apple...
+
+image::apple.png[]
+
+https://speakerdeck.com/normanmaurer/connectivity
+
+That's pretty big scale... Still expensive xD
+
+Takeaways::
+* Need async to reduce footprint, especially important with each service that gets deployed
+* Async is difficult, not everyone knows Netty
+* Need to find balance between scale and usability
+
+Some arguments::
+"Bottle neck is db calls"
+
+This depends on the nature of your application.
+Not every app is a CRUD app, and even those that are serve of static/in memory content
+
+
+== State of async in Java land
+
+Threads/Executors/Mutexes/AtomicReferences
+
+We have the means, but...
+
+* Testing
+* Readability, ease of understanding
+* Resource sharing (memory, system resources)
+
+== Async is hard
+
+* Non-deterministic
+* Callback hell
+* Error handling/propagation
+
+How many times have you forgotten to send a response to the user after making some async call in nodejs or Playframework?
+Susceptible to brain damage trying to track down what is happening.
+
+== Libraries to the rescue
+
+It's no secret that concurrency is hard.
+Different concurrency models have found their way into the JVM ecosystem over the years:
+
+* Futures (callbacks)
+* Queues
+* Fork/Join
+* Actors
+* Disruptor
+* Continuations (Quasar/parallel universe)
+
+Last few models try to limit or eliminate resource sharing between running threads.
+
+https://shipilev.net/blog/2014/jmm-pragmatics/
+
+https://shipilev.net/blog/2016/close-encounters-of-jmm-kind/
+
+== Ratpack
+
+Ratpack is async and non-blocking (Netty Rocks!)
+
+It provides its own concurrency model (execution model) for managing and handling web requests
+
+== Ratpack Thread Model
+
+Netty's event loop used for compute bound code:
+
+* Entry point to executing your Chain
+* Handling NIO events (e.g. read/write)
+* Scheduling/Coordinating executions
+
+WARNING: Never block the compute thread!
+Don't make any syscalls that block CPU until operation completes!
+
+Thread pool for running blocking code
+
+* For long running computations or code that blocks CPU until further notice
+
+== Ratpack Execution
+
+An execution is a collection of units of work to be executed and managed by Ratpack
+
+These units of work are called execution segment
+
+Any http handling code is always done within an execution
+
+Users schedule execution segments via Promise/Operation/Blocking facilities
+
+Execution segments for a given execution are always executed on the same thread
+
+http://ldaley.com/post/97376696242/ratpack-execution-model-part-1
+
+http://ldaley.com/post/102495950257/ratpacks-execution-model-in-practice
+
+== Ratpack Async Primitives
+
+* Promise
+* Operation
+* Blocking
+
+All Ratpack primitives are implemented with the Execution api
+
+If you can't find a method in Promise/Operation/Blocking you can always build it yourself!
+
+== Promises/Operations
+
+* Creating Promises schedules execution segments
+* Promises are executed in the order they were created (except for forked promises)
+* They run on cpu or blocking threads, determined at time of creation.
+* Easy to adapt with other async libraries (rx-mongo, thread pools)
+
+== Testability
+
+Ratpack provides ExecHarness test fixture for easy testability
+
+It allows you to run executions without starting a Ratpack server
+
+== ExecHarness
+
+* java.lang.AutoCloseable
+* Convenience methods that let ExecHarness manage start/close
+
+Can use Java 7 try-with-resources using new Parrot project (Bridging the gap between Groovy and Java syntax)
+
+== ExecHarness#yield
+
+Great for unit testing, executes a given promise and returns the value from the Promise in a blocking fashion
+
+Automatically subscribes to the Promise, no need to call Promise#then
+
+Comes in two varieties:
+
+ExecHarness#yield::
+  Keeps the ExecHarness running
+
+[source, groovy]
+----
+include::{test}/ExecHarnessSpec.groovy[tags=execHarnessYield,indent=0]
+----
+<1> Get an instance of ExecHarness
+<2> Invoke yield on the instance
+<3> Return a Ratpack Promise from the Closure
+<4> Extract the value from the Promise
+<5> Remember to clean up after ourselves!
+
+ExecHarness.yieldSingle::
+  Creates and cleans up ExecHarness on each invocation
+
+[source, groovy]
+----
+include::{test}/ExecHarnessSpec.groovy[tags=execHarnessYieldSingle, indent=0]
+----
+<1> Invoke static method ExecHarness.yieldSingle
+<2> Return Ratpack Promise from Closure to ExecHarness
+<3> Extract value from Promise
+
+== ExecHarness#run
+
+Great for seeing Promises in action, closer to coding experience in Ratpack code
+
+No return value
+
+Promises are not automatically subscribed
+
+Comes in two varieties:
+
+ExecHarness#run::
+  Starts and blocks execution until completed
+
+[source, groovy]
+----
+include::{test}/ExecHarnessSpec.groovy[tags=execHarnessRun, indent=0]
+----
+<1> Get an instance of ExecHarness
+<2> Pass a closure to ExecHarness#run method
+<3> Create Ratpack Promise
+<4> Subscribe to the Promise
+<5> Use Groovy Power Assert to make assertion on value from Promise
+
+ExecHarness.runSingle::
+  Creates and cleans up ExecHarness on each invocation
+
+[source, groovy]
+----
+include::{test}/ExecHarnessSpec.groovy[tags=execHarnessRunSingle, indent=0]
+----
+<1> Invoke static method ExecHarness.runSingle()
+<2> Create Ratpack Promise
+<3> Subscribe to Ratpack Promise
+<4> Use Groovy Power assert to assert the value resolved from the Promise
+
+NOTE: When making assertions from within closures you need to make sure that you use Groovy Power Assert. Spock does not apply assertions to values from within the Closure
+
+== Advanced Async
+
+* Promised
+* SerialBatch/ParallelBatch
+
+== Examples
+
+.Creating promise
+
+.Promise.sync
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=create-sync,indent=0]
+----
+
+Promises don't execute when you create them.
+
+.Promise#then
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=unmanaged,indent=0]
+----
+
+Promises execute with you subscribe via Promise#then
+
+.Promise.sync yield
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=yieldSync,indent=0]
+----
+
+Promises need to execute in Ratpack managed thread.
+
+ExecHarness provides Ratpack managed threads as do RatpackServers of all varieties.
+
+.Promise.sync run
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=runSync,indent=0]
+----
+
+.Promise.value
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-value,indent=0]
+----
+<1> Promise.value creates promise from an already available value, unlike Promise.sync which will wait until the promise is subscribed in order to generate the value.
+
+.Blocking.get()
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=blocking-get,indent=0]
+----
+
+.Blocking runs on different threadpool
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=blocking-thread-name,indent=0]
+----
+
+.Promise.async
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=third-party-async,indent=0]
+
+include::{test}/PromiseSpec.groovy[tags=promise-async,indent=0]
+----
+
+You can think of Operations as a `Promise<Void>`, they don't share a common type but there are ways to switch back and forth betwteen Promises and Operations
+
+.Operation.of
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=operation,indent=0]
+----
+<1> Factory to queue up an Operation
+<2> Note that Operations don't return anything so there is nothing to receive in the subscriber
+
+.Operation to Promise
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=operation-to-promise,indent=0]
+----
+<1> Invoke Operation#promise to create a Promise<Void>
+<2> See that we get null
+<3> Note that we can still work with this transformed Promise
+
+.Promise to Operation
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-to-operation,indent=0]
+----
+<1> We can turn a Promise into an Operation, however note that we still get the previous Promise value
+<2> See that Operation doesn't return anything
+
+.Handling errors
+
+Exceptions can be thrown from Promises
+
+.Exception thrown from Promise
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=exception,indent=0]
+----
+
+But we can handle it and short circuit
+
+.Promise#onError
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-onerror,indent=0]
+----
+
+Or we can handle and continue processing
+
+.Promise#mapError
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-maperror,indent=0]
+----
+
+NOTE: Promises are immutable, methods like `Promise#map` always return new promises
+
+.Promises are immutable
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=immutable,indent=0]
+----
+<1> Promise#onError returns a _new_ Promise
+<2> Promise#map returns a _new_ Promise
+
+.Promise api allows you to chain promise manipulation
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=mapPromise,indent=0]
+----
+<1> Promise#onError returns a new Promise
+
+Error mapping also available in flatmap flavor Promise#flatmapError.
+
+.Transforming Promises
+
+.Promise#map
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-map,indent=0]
+----
+<1> Promise#map runs on compute thread, don't block here
+
+.Promise#flatMap
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-flatmap,indent=0]
+----
+<1> Promise#flatMap runs on compute thread, don't block here
+<2> Since Blocking#get returns a Promise, need to use Promise#flatMap in order to "unpack" the nested promise and continue working with the value as in <3>
+
+.Promise#blockingMap
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-blockingmap,indent=0]
+----
+<1> A convenience method for executing blocking code inline without having to do `Promise#flatMap { Blocking.get {} }` as in the previous example
+
+.Promise#flatMap with async
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-flatmap-async,indent=0]
+----
+<1> Integrating with an externally managed threadpool/async library
+
+.Composing promises
+
+.Promise#left/right
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=promise-composition-pair,indent=0]
+----
+<1> Imagine some blocking jdbc lookup by name
+<2> Promise#right takes the result of the previous promise and creates a tuple like graph datastructure called Pair. The value returned from the closure/lambda is then pushed to the "right" position of the Pair
+<3> Imagine some in memory lookup for interests by user that we just looked up from <1>
+<4> The result from the previous call is of type `Pair<A, B>` where `A` is the result of the `Blocking.get{}` call and `B` is ther result of `Promise#right` call
+
+Pairs are handy when working with small number of arguments.
+
+You can also nest Pairs, you can have something like `Pair<Pair<A, B>, C>` but this quickly becomes hard to track.
+
+If only Java had tuple support :(
+
+This is also available in flatMap flavor Promise#flatLeft/flatRight
+
+* ParallelBatch, SerialBatch
+You'll often want to take a list of promises and transform them into a list of resolved values. ParallelBatch and SerialBatch help achieve this.
+
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=batch-basic,indent=0]
+----
+<1> Simulate price lookup in a blocking manner
+<2> Use a Groovy range to generate a list of promises to lookup the price for the given id
+<3> Invoke either `SerialBatch.of` or `ParallelBatch.of` and yield a `Promise<List<Map<String, Object>>>`
+<4> Use the handy value as a single list
+<5> Spock datatable for making `batch` pluggable
+
+Batch is great for when you have `List<Promise<A>>` but want to work with `Promise<List<A>>` in subsequent calculations.
+
+Forking execution
+
+.Promise#fork
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=fork,indent=0]
+----
+<1> Convenience closure for printing and adding to list
+<2> Add foo in a blocking manner
+<3> Add bar in async manner
+<4> Fork the bar async promise
+<5> Assert that bar was entered before foo
+
+NOTE: When forking Promises, they execute immediately!
+
+"Flow control"
+
+.Promise#mapIf
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=map-if,indent=0]
+----
+<1> Convenience closure
+<2> Example of using `Promise#mapIf(Predicate, Function)`, only maps if predicate passes
+<3> Execute these promises in parallel
+<4> Assert that our list is fizzbuzzed correctly
+
+Also available in flatMap variety Promise#flatMapIf
+
+Other useful methods:
+
+* Promise#onNull
+* Promise#route
+
+WARNING: Promise#route is a terminating call, the rest of the promise chain is no longer executed!!
+
+.Promise#route(Predicate, Action)
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=route,indent=0]
+----
+<1> Note that we terminate the promise chain here if predicate passes
+
+.Throttling Promises
+Throttle acts as a semaphore only allowing n number of promises to run in parallel.
+
+.Promise#throttled
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=throttle,indent=0]
+----
+<1> Declare a throttle of size 3
+<2> Make sure that the promise we submit to the ParallelBatch is throttled
+
+.Sample output
+----
+2017-05-30T07:42:48.294 EXECUTING FIZZBUZZ for 4
+2017-05-30T07:42:48.308 EXECUTING FIZZBUZZ for 5
+2017-05-30T07:42:48.294 EXECUTING FIZZBUZZ for 1
+2017-05-30T07:42:50.367 EXECUTING FIZZBUZZ for 10
+2017-05-30T07:42:50.367 EXECUTING FIZZBUZZ for 12
+2017-05-30T07:42:50.367 EXECUTING FIZZBUZZ for 2
+2017-05-30T07:42:52.371 EXECUTING FIZZBUZZ for 13
+2017-05-30T07:42:52.371 EXECUTING FIZZBUZZ for 9
+2017-05-30T07:42:52.371 EXECUTING FIZZBUZZ for 3
+2017-05-30T07:42:54.374 EXECUTING FIZZBUZZ for 7
+2017-05-30T07:42:54.374 EXECUTING FIZZBUZZ for 6
+2017-05-30T07:42:54.374 EXECUTING FIZZBUZZ for 11
+2017-05-30T07:42:56.377 EXECUTING FIZZBUZZ for 8
+2017-05-30T07:42:56.377 EXECUTING FIZZBUZZ for 15
+2017-05-30T07:42:56.377 EXECUTING FIZZBUZZ for 14
+----
+
+You can see there is a tight grouping of 3 per time period
+
+.Spying
+
+If you wish to observe items as they get processed in the promise chain, you can make use of Promise#wiretap
+
+.Promise#wiretap
+[source,groovy]
+----
+include::{test}/PromiseSpec.groovy[tags=wiretap,indent=0]
+----
+<1> Invoke wiretap method
+<2> Note that we have to invoke Result#getValue in order to get the value produced from the previous Promise
+<3> Note that the next processor gets the same result as the wiretap
+
+
+== Best practices
+
+* Avoid multiple then blocks
+* Try to linearize/flatten data flow

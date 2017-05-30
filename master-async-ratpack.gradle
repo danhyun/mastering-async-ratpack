@@ -1,0 +1,61 @@
+buildscript {
+  repositories {
+    jcenter()
+  }
+
+  dependencies {
+    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+    classpath 'org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.11'
+  }
+}
+
+plugins {
+  id 'io.ratpack.ratpack-groovy' version '1.5.0-rc-2'
+}
+
+apply plugin: 'idea'
+apply plugin: 'org.asciidoctor.convert'
+
+asciidoctor {
+  sourceDir = rootDir
+  sources {
+    include 'README.adoc'
+  }
+
+  backends = ['html5', 'pdf']
+
+  attributes  toc                 :'left',
+              'source-highlighter': 'coderay',
+              icons               : 'font',
+              numbered            : '',
+              idprefix            : '',
+              test: 'src/test/groovy',
+              imagesdir: 'img',
+              docinfodir: 'docinfo',
+              docinfo: 'shared'
+
+  resources {
+    from (sourceDir) {
+      include 'img/**'
+    }
+  }
+}
+
+repositories {
+  jcenter()
+}
+
+dependencies {
+  testCompile ratpack.dependency('groovy-test')
+  testCompile ('org.spockframework:spock-core:1.0-groovy-2.4') {
+    exclude module: "groovy-all"
+  }
+}
+
+idea {
+  project {
+    vcs 'Git'
+    languageLevel '1.8'
+    jdkName '1.8'
+  }
+}
