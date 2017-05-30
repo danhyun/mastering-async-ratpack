@@ -3,6 +3,7 @@ Daniel Hyun <https://github.com/danhyun[icon:github[] @danhyun] https://twitter.
 2017 June 1
 
 Notes: https://danhyun.github.io/mastering-async-ratpack/
+
 PDF: https://danhyun.github.io/mastering-async-ratpack/notes.pdf
 
 == Need for Async
