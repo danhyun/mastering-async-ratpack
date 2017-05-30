@@ -521,29 +521,34 @@ table.CodeRay td.code>pre{padding:0}
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#need_for_async">1. Need for Async</a></li>
-<li><a href="#scalability">2. Scalability</a></li>
-<li><a href="#state_of_async_in_java_land">3. State of async in Java land</a></li>
-<li><a href="#async_is_hard">4. Async is hard</a></li>
-<li><a href="#libraries_to_the_rescue">5. Libraries to the rescue</a></li>
-<li><a href="#ratpack">6. Ratpack</a></li>
-<li><a href="#ratpack_thread_model">7. Ratpack Thread Model</a></li>
-<li><a href="#ratpack_execution">8. Ratpack Execution</a></li>
-<li><a href="#ratpack_async_primitives">9. Ratpack Async Primitives</a></li>
-<li><a href="#promises_operations">10. Promises/Operations</a></li>
-<li><a href="#testability">11. Testability</a></li>
-<li><a href="#execharness">12. ExecHarness</a></li>
-<li><a href="#execharness_yield">13. ExecHarness#yield</a></li>
-<li><a href="#execharness_run">14. ExecHarness#run</a></li>
-<li><a href="#advanced_async">15. Advanced Async</a></li>
-<li><a href="#examples">16. Examples</a></li>
-<li><a href="#best_practices">17. Best practices</a></li>
+<li><a href="#details">1. Details</a></li>
+<li><a href="#need_for_async">2. Need for Async</a></li>
+<li><a href="#scalability">3. Scalability</a></li>
+<li><a href="#state_of_async_in_java_land">4. State of async in Java land</a></li>
+<li><a href="#async_is_hard">5. Async is hard</a></li>
+<li><a href="#libraries_to_the_rescue">6. Libraries to the rescue</a></li>
+<li><a href="#ratpack">7. Ratpack</a></li>
+<li><a href="#ratpack_thread_model">8. Ratpack Thread Model</a></li>
+<li><a href="#ratpack_execution">9. Ratpack Execution</a></li>
+<li><a href="#ratpack_async_primitives">10. Ratpack Async Primitives</a></li>
+<li><a href="#promises_operations">11. Promises/Operations</a></li>
+<li><a href="#testability">12. Testability</a></li>
+<li><a href="#execharness">13. ExecHarness</a></li>
+<li><a href="#execharness_yield">14. ExecHarness#yield</a></li>
+<li><a href="#execharness_run">15. ExecHarness#run</a></li>
+<li><a href="#advanced_async">16. Advanced Async</a></li>
+<li><a href="#examples">17. Examples</a></li>
+<li><a href="#best_practices">18. Best practices</a></li>
 </ul>
 </div>
 </div>
 <div id="content">
-<div id="preamble">
+<div class="sect1">
+<h2 id="details">1. Details</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>Code: <a href="https://github.com/danhyun/mastering-async-ratpack/" class="bare">https://github.com/danhyun/mastering-async-ratpack/</a></p>
+</div>
 <div class="paragraph">
 <p>Notes: <a href="https://danhyun.github.io/mastering-async-ratpack/" class="bare">https://danhyun.github.io/mastering-async-ratpack/</a></p>
 </div>
@@ -553,7 +558,7 @@ table.CodeRay td.code>pre{padding:0}
 </div>
 </div>
 <div class="sect1">
-<h2 id="need_for_async">1. Need for Async</h2>
+<h2 id="need_for_async">2. Need for Async</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>We want to do more with less.</p>
@@ -576,7 +581,7 @@ example | apache             | servlet | netty
 </div>
 </div>
 <div class="sect1">
-<h2 id="scalability">2. Scalability</h2>
+<h2 id="scalability">3. Scalability</h2>
 <div class="sectionbody">
 <div class="imageblock">
 <div class="content">
@@ -639,7 +644,7 @@ Not every app is a CRUD app, and even those that are serve of static/in memory c
 </div>
 </div>
 <div class="sect1">
-<h2 id="state_of_async_in_java_land">3. State of async in Java land</h2>
+<h2 id="state_of_async_in_java_land">4. State of async in Java land</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Threads/Executors/Mutexes/AtomicReferences</p>
@@ -663,7 +668,7 @@ Not every app is a CRUD app, and even those that are serve of static/in memory c
 </div>
 </div>
 <div class="sect1">
-<h2 id="async_is_hard">4. Async is hard</h2>
+<h2 id="async_is_hard">5. Async is hard</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -685,7 +690,7 @@ Susceptible to brain damage trying to track down what is happening.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="libraries_to_the_rescue">5. Libraries to the rescue</h2>
+<h2 id="libraries_to_the_rescue">6. Libraries to the rescue</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>It&#8217;s no secret that concurrency is hard.
@@ -725,7 +730,7 @@ Different concurrency models have found their way into the JVM ecosystem over th
 </div>
 </div>
 <div class="sect1">
-<h2 id="ratpack">6. Ratpack</h2>
+<h2 id="ratpack">7. Ratpack</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Ratpack is async and non-blocking (Netty Rocks!)</p>
@@ -736,7 +741,7 @@ Different concurrency models have found their way into the JVM ecosystem over th
 </div>
 </div>
 <div class="sect1">
-<h2 id="ratpack_thread_model">7. Ratpack Thread Model</h2>
+<h2 id="ratpack_thread_model">8. Ratpack Thread Model</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Netty&#8217;s event loop used for compute bound code:</p>
@@ -780,7 +785,7 @@ Don&#8217;t make any syscalls that block CPU until operation completes!
 </div>
 </div>
 <div class="sect1">
-<h2 id="ratpack_execution">8. Ratpack Execution</h2>
+<h2 id="ratpack_execution">9. Ratpack Execution</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>An execution is a collection of units of work to be executed and managed by Ratpack</p>
@@ -806,7 +811,7 @@ Don&#8217;t make any syscalls that block CPU until operation completes!
 </div>
 </div>
 <div class="sect1">
-<h2 id="ratpack_async_primitives">9. Ratpack Async Primitives</h2>
+<h2 id="ratpack_async_primitives">10. Ratpack Async Primitives</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -830,7 +835,7 @@ Don&#8217;t make any syscalls that block CPU until operation completes!
 </div>
 </div>
 <div class="sect1">
-<h2 id="promises_operations">10. Promises/Operations</h2>
+<h2 id="promises_operations">11. Promises/Operations</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -851,7 +856,7 @@ Don&#8217;t make any syscalls that block CPU until operation completes!
 </div>
 </div>
 <div class="sect1">
-<h2 id="testability">11. Testability</h2>
+<h2 id="testability">12. Testability</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Ratpack provides ExecHarness test fixture for easy testability</p>
@@ -862,7 +867,7 @@ Don&#8217;t make any syscalls that block CPU until operation completes!
 </div>
 </div>
 <div class="sect1">
-<h2 id="execharness">12. ExecHarness</h2>
+<h2 id="execharness">13. ExecHarness</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -880,7 +885,7 @@ Don&#8217;t make any syscalls that block CPU until operation completes!
 </div>
 </div>
 <div class="sect1">
-<h2 id="execharness_yield">13. ExecHarness#yield</h2>
+<h2 id="execharness_yield">14. ExecHarness#yield</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Great for unit testing, executes a given promise and returns the value from the Promise in a blocking fashion</p>
@@ -970,7 +975,7 @@ result.value == <span class="string"><span class="delimiter">'</span><span class
 </div>
 </div>
 <div class="sect1">
-<h2 id="execharness_run">14. ExecHarness#run</h2>
+<h2 id="execharness_run">15. ExecHarness#run</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Great for seeing Promises in action, closer to coding experience in Ratpack code</p>
@@ -1079,7 +1084,7 @@ When making assertions from within closures you need to make sure that you use G
 </div>
 </div>
 <div class="sect1">
-<h2 id="advanced_async">15. Advanced Async</h2>
+<h2 id="advanced_async">16. Advanced Async</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -1094,7 +1099,7 @@ When making assertions from within closures you need to make sure that you use G
 </div>
 </div>
 <div class="sect1">
-<h2 id="examples">16. Examples</h2>
+<h2 id="examples">17. Examples</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="title">Promise.sync</div>
@@ -1967,7 +1972,7 @@ run {
 </div>
 </div>
 <div class="sect1">
-<h2 id="best_practices">17. Best practices</h2>
+<h2 id="best_practices">18. Best practices</h2>
 <div class="sectionbody">
 <div class="ulist">
 <ul>
@@ -1984,7 +1989,7 @@ run {
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-05-30 09:56:29 EDT
+Last updated 2017-05-30 10:00:57 EDT
 </div>
 </div>
 <script>
