@@ -510,7 +510,7 @@ table.CodeRay td.code>pre{padding:0}
 .CodeRay .head .head{color:#f4f}
 </style>
 </head>
-<body class="article toc2 toc-left">
+<body class="article">
 <div id="header">
 <h1>Mastering Async with Ratpack</h1>
 <div class="details">
@@ -518,7 +518,7 @@ table.CodeRay td.code>pre{padding:0}
 <span id="email" class="email"><a href="https://github.com/danhyun"><span class="icon"><i class="fa fa-github"></i></span> @danhyun</a> <a href="https://twitter.com/LSpacewalker"><span class="icon"><i class="fa fa-twitter"></i></span> @LSpacewalker</a></span><br>
 <span id="revdate">2017 June 1</span>
 </div>
-<div id="toc" class="toc2">
+<div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
 <li><a href="#details">1. Details</a></li>
@@ -537,7 +537,11 @@ table.CodeRay td.code>pre{padding:0}
 <li><a href="#execharness_yield">14. ExecHarness#yield</a></li>
 <li><a href="#execharness_run">15. ExecHarness#run</a></li>
 <li><a href="#advanced_async">16. Advanced Async</a></li>
-<li><a href="#examples">17. Examples</a></li>
+<li><a href="#examples">17. Examples</a>
+<ul class="sectlevel2">
+<li><a href="#anatomy_of_a_promise">17.1. Anatomy of a Promise</a></li>
+</ul>
+</li>
 <li><a href="#best_practices">18. Best practices</a></li>
 </ul>
 </div>
@@ -1341,6 +1345,68 @@ p.map { v -&gt;
 </tr>
 </table>
 </div>
+<div class="sect2">
+<h3 id="anatomy_of_a_promise">17.1. Anatomy of a Promise</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy">Promise.sync {
+  <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span>
+}.map { s -&gt;
+  s.toUpperCase()
+}.then { s -&gt;
+  ctx.render(s)
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As the methods <code>sync</code>, <code>map</code>, <code>then</code> are invoked, execution segments get queued.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy">[{Promise.sync { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }.map { s -&gt; s.toUpperCase() }.then { s -&gt; ctx.render(s) }}]
+           |                       |                            |
+           |                       |                            |
+           v                       |                            |
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }]           v                            |
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }, { s -&gt; s.toUpperCase() }]              v
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }, { s -&gt; s.toUpperCase() }, { s -&gt; ctx.render(s) }]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The output from the first promise is then used as input for the second segment, et cetera.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy">Promise.sync {
+  <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span>
+}.flatMap { s -&gt;
+  Promise.sync {
+    s.toUpperCase()
+  }
+}.then { s -&gt;
+  ctx.render(s)
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="groovy">[{Promise.sync { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }.flatMap { s -&gt; Promise.sync { s.toUpperCase() } }.then { s -&gt; ctx.render(s) }}]
+           |                       |                                                  |
+           |                       |                                                  |
+           v                       |                                                  |
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }]           v                                                  |
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }, { s -&gt; Promise.sync { s -&gt; s.toUpperCase() }}]               v
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }, { s -&gt; Promise.sync { s -&gt; s.toUpperCase() }}, { s -&gt; ctx.render(s)}]
+                                         |
+                                         |_____________________________________
+                                                                              |
+                                                                              v
+[{}, { <span class="keyword">return</span> <span class="string"><span class="delimiter">'</span><span class="content">hello</span><span class="delimiter">'</span></span> }, { s -&gt; Promise.sync { s -&gt; s.toUpperCase() }}, { s -&gt; s.toUpperCase() }, { s -&gt; ctx.render(s)}]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Flatmap will queue up the promise, if you use map instead it just passes the promise to the next execution segment in the queue.</p>
+</div>
 <div class="paragraph">
 <div class="title">Handling errors</div>
 <p>Exceptions can be thrown from Promises</p>
@@ -1971,6 +2037,7 @@ run {
 </div>
 </div>
 </div>
+</div>
 <div class="sect1">
 <h2 id="best_practices">18. Best practices</h2>
 <div class="sectionbody">
@@ -1989,7 +2056,7 @@ run {
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-05-30 10:00:57 EDT
+Last updated 2017-05-31 09:33:19 EDT
 </div>
 </div>
 <script>
