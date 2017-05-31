@@ -324,6 +324,66 @@ include::{test}/PromiseSpec.groovy[tags=promise-to-operation,indent=0]
 <1> We can turn a Promise into an Operation, however note that we still get the previous Promise value
 <2> See that Operation doesn't return anything
 
+=== Anatomy of a Promise
+
+[source, groovy]
+----
+Promise.sync {
+  return 'hello'
+}.map { s ->
+  s.toUpperCase()
+}.then { s ->
+  ctx.render(s)
+}
+----
+
+As the methods `sync`, `map`, `then` are invoked, execution segments get queued.
+
+[source, groovy]
+----
+[{Promise.sync { return 'hello' }.map { s -> s.toUpperCase() }.then { s -> ctx.render(s) }}]
+           |                       |                            |
+           |                       |                            |
+           v                       |                            |
+[{}, { return 'hello' }]           v                            |
+[{}, { return 'hello' }, { s -> s.toUpperCase() }]              v
+[{}, { return 'hello' }, { s -> s.toUpperCase() }, { s -> ctx.render(s) }]
+----
+
+The output from the first promise is then used as input for the second segment, et cetera.
+
+[source, groovy]
+----
+Promise.sync {
+  return 'hello'
+}.flatMap { s ->
+  Promise.sync {
+    s.toUpperCase()
+  }
+}.then { s ->
+  ctx.render(s)
+}
+----
+
+
+[source, groovy]
+----
+[{Promise.sync { return 'hello' }.flatMap { s -> Promise.sync { s.toUpperCase() } }.then { s -> ctx.render(s) }}]
+           |                       |                                                  |
+           |                       |                                                  |
+           v                       |                                                  |
+[{}, { return 'hello' }]           v                                                  |
+[{}, { return 'hello' }, { s -> Promise.sync { s -> s.toUpperCase() }}]               v
+[{}, { return 'hello' }, { s -> Promise.sync { s -> s.toUpperCase() }}, { s -> ctx.render(s)}]
+                                         |
+                                         |_____________________________________
+                                                                              |
+                                                                              v
+[{}, { return 'hello' }, { s -> Promise.sync { s -> s.toUpperCase() }}, { s -> s.toUpperCase() }, { s -> ctx.render(s)}]
+----
+
+Flatmap will queue up the promise, if you use map instead it just passes the promise to the next execution segment in the queue.
+
 .Handling errors
 
 Exceptions can be thrown from Promises

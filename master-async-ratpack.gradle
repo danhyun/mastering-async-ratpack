@@ -24,8 +24,8 @@ asciidoctor {
 
   backends = ['html5', 'pdf']
 
-  attributes  toc                 :'left',
-              'source-highlighter': 'coderay',
+  attributes 'toc': 'auto',
+             'source-highlighter': 'coderay',
               icons               : 'font',
               numbered            : '',
               idprefix            : '',
